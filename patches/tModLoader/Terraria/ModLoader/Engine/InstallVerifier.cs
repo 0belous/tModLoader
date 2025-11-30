@@ -106,14 +106,14 @@ internal static class InstallVerifier
 
 	internal static void Startup()
 	{
-		DistributionPlatform = DetectPlatform(out string detectionDetails);
-		Logging.tML.Info($"Distribution Platform: {DistributionPlatform}. Detection method: {detectionDetails}");
+		DistributionPlatform = DistributionPlatform.Unknown;
 
-		if (DistributionPlatform == DistributionPlatform.GoG) {
-			CheckGoG();
+		if (!ObtainVanillaExePath(out var vanillaDir, out var exePath)) {
+			vanillaExePath = null;
 		}
 		else {
-			CheckSteam();
+			vanillaExePath = exePath;
+			Logging.tML.Info($"Using local Terraria executable: {vanillaExePath}");
 		}
 	}
 
@@ -170,7 +170,7 @@ internal static class InstallVerifier
 		// If .exe not present check parent directory (Nested Manual Install)
 		vanillaPath = Directory.GetParent(vanillaPath).FullName;
 		yield return vanillaPath;
-		
+
 		// If .exe not present, check Terraria directory (Side-by-Side Manual Install)
 		vanillaPath = Path.Combine(vanillaPath, "Terraria");
 		if (Platform.IsOSX) {
@@ -190,8 +190,8 @@ internal static class InstallVerifier
 
 		// Fallback to default GOG install locations
 		if (Platform.IsWindows) {
-			yield return Path.Combine(@"c:\", "Program Files (x86)", "GOG Galaxy", "Games", "Terraria");
-			yield return Path.Combine(@"c:\", "GOG Games", "Terraria");
+			yield return Path.Combine(@"c:\", "Users", "Admin", "Download", "Terraria", "Terraria");
+			yield return Path.Combine(@"c:\", "Users", "Admin", "Download", "Terraria", "Terraria");
 		}
 		else if (Platform.IsLinux) {
 			yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "GOG Games", "Terraria");
@@ -219,11 +219,13 @@ internal static class InstallVerifier
 		if (IsSteamUnsupported)
 			return;
 
+		/*
 		if (!HashMatchesFile(steamAPIPath, steamAPIHash)) {
 			Utils.OpenToURL("https://terraria.org");
 			ErrorReporting.FatalExit(Language.GetTextValue("tModLoader.SteamAPIHashMismatch"));
 			return;
 		}
+		*/
 
 		if (Main.dedServ)
 			return;
